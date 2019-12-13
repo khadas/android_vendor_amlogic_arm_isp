@@ -22,6 +22,18 @@ int sensor_bp_init(sensor_bringup_t* sbp, struct device* dev)
 	return 0;
 }
 
+extern int tca6408_output_set_value(u8 value, u8 mask);
+int gpio_expander_direction_output(u8 index, u8 value)
+{
+	u8 val = 0, mask = 0;
+	mask = 1 << index;
+	if (0 == value)
+		val = ~mask;
+	else
+		val = mask;
+	return tca6408_output_set_value(val, mask);
+}
+
 int pwr_am_enable(sensor_bringup_t* sensor_bp, const char* propname, int val)
 {
 	struct device_node *np = NULL;
@@ -64,18 +76,7 @@ int pwr_ir_cut_enable(sensor_bringup_t* sensor_bp, int propname, int val)
 	int ret = -1;
 	ret = propname;
 
-	if (ret >= 0) {
-		devm_gpio_request(sensor_bp->dev, propname, "POWER");
-		if (gpio_is_valid(propname)) {
-			gpio_direction_output(propname, val);
-			pr_info("pwr_enable: power gpio init\n");
-		} else {
-			pr_err("pwr_enable: gpio %d is not valid\n", propname);
-			return -1;
-		}
-	} else {
-		pr_err("pwr_enable: get_named_gpio %d fail\n", propname);
-	}
+	ret = gpio_expander_direction_output(2, val);
 	return ret;
 }
 
@@ -85,18 +86,15 @@ int reset_am_enable(sensor_bringup_t* sensor_bp, const char* propname, int val)
 	int ret = -1;
 
 	np = sensor_bp->np;
-	sensor_bp->reset = of_get_named_gpio(np, propname, 0);
+	sensor_bp->reset = 1;
 	ret = sensor_bp->reset;
 
 	if (ret >= 0) {
-		devm_gpio_request(sensor_bp->dev, sensor_bp->reset, "RESET");
-		if (gpio_is_valid(sensor_bp->reset)) {
-			gpio_direction_output(sensor_bp->reset, val);
-			pr_info("reset init\n");
-		} else {
-			pr_err("reset_enable: gpio %s is not valid\n", propname);
-			return -1;
-		}
+		pr_info("reset init\n");
+		gpio_expander_direction_output(3, 0);
+		mdelay(20);
+		gpio_expander_direction_output(3, 1);
+		mdelay(20);
 	} else {
 		pr_err("reset_enable: get_named_gpio %s fail\n", propname);
 	}
@@ -106,9 +104,8 @@ int reset_am_enable(sensor_bringup_t* sensor_bp, const char* propname, int val)
 
 int reset_am_disable(sensor_bringup_t* sensor_bp)
 {
-	if (gpio_is_valid(sensor_bp->reset)) {
-		gpio_direction_output(sensor_bp->reset, 0);
-		devm_gpio_free(sensor_bp->dev, sensor_bp->reset);
+	if (sensor_bp->reset) {
+		gpio_expander_direction_output(3, 0);
 	} else {
 		pr_err("Error invalid reset gpio\n");
 	}
@@ -127,6 +124,7 @@ int clk_am_enable(sensor_bringup_t* sensor_bp, const char* propname)
 	    return -1;
 	}
 
+	clk_set_rate(clk, 24000000);
 	clk_prepare_enable(clk);
 	clk_val = clk_get_rate(clk);
 	pr_info("isp init clock is %d MHZ\n",clk_val/1000000);
