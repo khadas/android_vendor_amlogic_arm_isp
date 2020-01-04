@@ -30,6 +30,8 @@
 //-------------------------------------------------------------------------------------
 
 #include <linux/delay.h>
+#include <linux/sysfs.h>
+#include <linux/device.h>
 #include "acamera_types.h"
 #include "sensor_init.h"
 #include "acamera_math.h"
@@ -51,6 +53,7 @@
 
 #define FS_LIN_1080P 1
 static int sen_mode = 0;
+static int cam_exist = 0;
 static void start_streaming( void *ctx );
 static void stop_streaming( void *ctx );
 
@@ -197,6 +200,7 @@ typedef struct _sensor_context_t {
     acamera_sbus_t sbus;
     sensor_param_t param;
     void *sbp;
+    struct class *camera_class;
 } sensor_context_t;
 
 #if SENSOR_BINARY_SEQUENCE
@@ -216,6 +220,16 @@ static void sensor_hw_reset_disable( void )
 {
     system_reset_sensor( 3 );
 }
+
+static ssize_t show_camera_state(struct class *cls,
+                        struct class_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", cam_exist);
+}
+
+static struct class_attribute camera_class_attrs[] = {
+    __ATTR(cam_state, 0644, show_camera_state, NULL),
+};
 
 //-------------------------------------------------------------------------------------
 static int32_t sensor_alloc_analog_gain( void *ctx, int32_t gain )
@@ -366,6 +380,7 @@ static uint16_t sensor_get_id( void *ctx )
         LOG(LOG_ERR, "%s: Failed to read sensor id\n", __func__);
         return 0xFF;
     }
+    cam_exist = 1;
     return 0;
 }
 
@@ -597,6 +612,7 @@ void sensor_init_ov08a10( void **ctx, sensor_control_t *ctrl, void *sbp )
     // Local sensor data structure
     static sensor_context_t s_ctx;
     int ret;
+    int i;
     sensor_bringup_t* sensor_bp = (sensor_bringup_t*) sbp;
 #if PLATFORM_G12B
 #if NEED_CONFIG_BSP
@@ -622,6 +638,17 @@ void sensor_init_ov08a10( void **ctx, sensor_control_t *ctrl, void *sbp )
 	if (ret < 0 )
 		pr_err("set reset fail\n");
 #endif
+
+    s_ctx.camera_class = class_create(THIS_MODULE, "camera");
+    if (IS_ERR(s_ctx.camera_class)) {
+        pr_err("create camera_class debug class fail\n");
+        return;
+    }
+    for (i = 0; i < ARRAY_SIZE(camera_class_attrs); i++) {
+        if (class_create_file(s_ctx.camera_class, &camera_class_attrs[i]))
+         pr_err("create camera attribute %s fail\n", camera_class_attrs[i].attr.name);
+
+    }
 
     s_ctx.sbp = sbp;
 
