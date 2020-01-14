@@ -47,7 +47,6 @@ int pwr_am_enable(sensor_bringup_t* sensor_bp, const char* propname, int val)
 		devm_gpio_request(sensor_bp->dev, sensor_bp->vana, "POWER");
 		if (gpio_is_valid(sensor_bp->vana)) {
 			gpio_direction_output(sensor_bp->vana, val);
-			pr_info("pwr_enable: power gpio init\n");
 		} else {
 			pr_err("pwr_enable: gpio %s is not valid\n", propname);
 			return -1;
@@ -90,7 +89,6 @@ int reset_am_enable(sensor_bringup_t* sensor_bp, const char* propname, int val)
 	ret = sensor_bp->reset;
 
 	if (ret >= 0) {
-		pr_info("reset init\n");
 		gpio_expander_direction_output(3, 0);
 		mdelay(20);
 		gpio_expander_direction_output(3, 1);
@@ -127,7 +125,7 @@ int clk_am_enable(sensor_bringup_t* sensor_bp, const char* propname)
 	clk_set_rate(clk, 24000000);
 	clk_prepare_enable(clk);
 	clk_val = clk_get_rate(clk);
-	pr_info("isp init clock is %d MHZ\n",clk_val/1000000);
+	pr_info("init clock is %d MHZ\n",clk_val/1000000);
 
 	sensor_bp->mclk = clk;
 	return 0;
@@ -152,7 +150,7 @@ int gp_pl_am_enable(sensor_bringup_t* sensor_bp, const char* propname, uint32_t 
 	if (ret < 0)
 		pr_err(" clk_prepare_enable failed\n");
 	clk_val = clk_get_rate(clk);
-	pr_err("isp init clock is %d MHZ\n",clk_val/1000000);
+	pr_err("init clock is %d MHZ\n",clk_val/1000000);
 
 	sensor_bp->mclk = clk;
 	return 0;
