@@ -114,6 +114,30 @@ int reset_am_disable(sensor_bringup_t* sensor_bp)
 	return 0;
 }
 
+int pwren_am_enable(sensor_bringup_t* sensor_bp, const char* propname, int val)
+{
+    struct device_node *np = NULL;
+    int ret = -1;
+
+    np = sensor_bp->np;
+    sensor_bp->pwren = of_get_named_gpio(np, propname, 0);
+    ret = sensor_bp->pwren;
+
+    if (ret >= 0) {
+        devm_gpio_request(sensor_bp->dev, sensor_bp->pwren, "PWREN");
+        if (gpio_is_valid(sensor_bp->pwren)) {
+            gpio_direction_output(sensor_bp->pwren, val);
+        } else {
+            pr_err("power_enable: gpio %s is not valid\n", propname);
+            return -1;
+        }
+    } else {
+        pr_err("power_enable: get_named_gpio %s fail\n", propname);
+    }
+
+    return ret;
+}
+
 int pwren_am_disable(sensor_bringup_t* sensor_bp)
 {
     if (gpio_is_valid(sensor_bp->pwren)) {
