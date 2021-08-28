@@ -228,8 +228,8 @@ uint8_t system_i2c_write( uint32_t bus, uint32_t phy_addr, uint8_t *data, uint32
 	}
 
 	if (rc < 0) {
-		pr_err("%s:failed to write reg data: rc %d, saddr 0x%x\n", __func__,
-					rc, saddr);
+		//pr_err("%s:failed to write reg data: rc %d, saddr 0x%x\n", __func__,
+					//rc, saddr);
 		return rc;
 	}
 
@@ -281,8 +281,8 @@ uint8_t system_i2c_read( uint32_t bus, uint32_t phy_addr, uint8_t *data, uint32_
 	}
 
 	if (rc < 0) {
-		pr_err("%s:failed to read reg data: rc %d, saddr 0x%02x\n", __func__,
-					rc, saddr);
+		//pr_err("%s:failed to read reg data: rc %d, saddr 0x%02x\n", __func__,
+					//rc, saddr);
 		return rc;
 	}
 
