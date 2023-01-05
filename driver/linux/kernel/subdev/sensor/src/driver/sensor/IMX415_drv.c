@@ -18,6 +18,8 @@
 */
 
 #include <linux/delay.h>
+#include <linux/sysfs.h>
+#include <linux/device.h>
 #include "acamera_types.h"
 #include "system_spi.h"
 #include "system_sensor.h"
@@ -48,6 +50,10 @@
 // Basic read out lines from the specs
 #define WDR_2_DOL_4K_BRL 2200
 #define WDR_2_DOL_1080P_BRL  1100
+
+static int cam_exist = 0;
+extern int tca6408_output_get_value(u8 *value);
+extern int tca6408_output_set_value(u8 value, u8 mask);
 
 static void start_streaming( void *ctx );
 static void stop_streaming( void *ctx );
@@ -125,6 +131,40 @@ static void sensor_hw_reset_disable( void )
 {
     system_reset_sensor( 3 );
 }
+
+static ssize_t show_camera_state(struct class *cls,
+                        struct class_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", cam_exist);
+}
+static ssize_t show_ircut(struct class *cls,
+                        struct class_attribute *attr, char *buf)
+{
+    u8 val;
+    int ret = 0, state = 0;
+    ret = tca6408_output_get_value(&val);
+    if (ret) {
+        printk("failed to read ircut state\n");
+        return sprintf(buf, "%d\n", state);
+    }
+    state = (val & (1<<2)) == 0 ? 1 : 0;
+    printk("read ir-cut state=%d\n", state);
+    return sprintf(buf, "%d\n", state);
+}
+static ssize_t store_ircut(struct class *cls, struct class_attribute *attr,
+                        const char *buf, size_t count)
+{
+   int enable;
+   if (kstrtoint(buf, 0, &enable))
+       return -EINVAL;
+   enable = !enable;
+   tca6408_output_set_value((u8)enable<<2, 1<<2);
+   return count;
+}
+static struct class_attribute camera_class_attrs[] = {
+    __ATTR(cam_state, 0644, show_camera_state, NULL),
+    __ATTR(ircut, 0644, show_ircut, store_ircut),
+};
 
 //-------------------------------------------------------------------------------------
 static int32_t sensor_alloc_analog_gain( void *ctx, int32_t gain )
@@ -356,10 +396,11 @@ static uint16_t sensor_get_id( void *ctx )
     sensor_id |= acamera_sbus_read_u8(&p_ctx->sbus, 0x30da);
 
     if (sensor_id != SENSOR_CHIP_ID) {
-        LOG(LOG_CRIT, "%s: Failed to read sensor id\n", __func__);
-        return 0xFFFF;
+        LOG(LOG_CRIT, "%s: Failed to read sensor imx415 id\n", __func__);
+        return 0xFF;
     }
 
+    cam_exist = 1;
     LOG(LOG_INFO, "%s: success to read sensor %x\n", __func__, sensor_id);
     return sensor_id;
 }
@@ -567,7 +608,7 @@ static sensor_context_t *sensor_global_parameter(void* sbp)
     sensor_ctx.sdrv = &imx415_ctx;
 
 #if PLATFORM_G12B
-    ret = clk_am_enable(sensor_bp, "g12a_24m");
+    ret = clk_am_enable(sensor_bp, "gen_clk");
     if (ret < 0 )
         pr_err("set mclk fail\n");
 #elif PLATFORM_C308X
@@ -643,6 +684,7 @@ static sensor_context_t *sensor_global_parameter(void* sbp)
 //--------------------Initialization------------------------------------------------------------
 void sensor_init_imx415( void **ctx, sensor_control_t *ctrl, void* sbp)
 {
+    int i;
     *ctx = sensor_global_parameter(sbp);
 
     ctrl->alloc_analog_gain = sensor_alloc_analog_gain;
@@ -660,7 +702,16 @@ void sensor_init_imx415( void **ctx, sensor_control_t *ctrl, void* sbp)
     ctrl->stop_streaming = stop_streaming;
     ctrl->sensor_test_pattern = sensor_test_pattern;
     ctrl->vmax_fps = sensor_vmax_fps;
+    sensor_ctx.camera_class = class_create(THIS_MODULE, "camera");
+    if (IS_ERR(sensor_ctx.camera_class)) {
+        pr_err("create camera_class debug class fail\n");
+        return;
+    }
+    for (i = 0; i < ARRAY_SIZE(camera_class_attrs); i++) {
+        if (class_create_file(sensor_ctx.camera_class, &camera_class_attrs[i]))
+         pr_err("create camera attribute %s fail\n", camera_class_attrs[i].attr.name);
 
+    }
     // Reset sensor during initialization
     sensor_hw_reset_enable();
     system_timer_usleep( 1000 ); // reset at least 1 ms
