@@ -78,7 +78,7 @@ struct IqConversion IqConversionTable[] = {
     {CALIBRATION_SUBDEV_FUNCTIONS_OS04A10_TV, NULL,"os04a10"},
 };
 
-uint32_t ( *CALIBRATION_FUNC_ARR[] )( uint32_t ctx_id, void *sensor_arg, ACameraCalibrations *c ) = {CALIBRATION_SUBDEV_FUNCTIONS_IMX290, CALIBRATION_SUBDEV_FUNCTIONS_IMX290};
+uint32_t ( *CALIBRATION_FUNC_ARR[] )( uint32_t ctx_id, void *sensor_arg, ACameraCalibrations *c ) = {CALIBRATION_SUBDEV_FUNCTIONS_IMX290, CALIBRATION_SUBDEV_FUNCTIONS_IMX290, CALIBRATION_SUBDEV_FUNCTIONS_IMX415, CALIBRATION_SUBDEV_FUNCTIONS_IMX415};
 uint32_t ( *CALIBRATION_OTP_FUNC_ARR[] )( uint32_t ctx_id, void *sensor_arg, ACameraCalibrations *c ) = {CALIBRATION_SUBDEV_FUNCTIONS_OS08A10_OTP, CALIBRATION_SUBDEV_FUNCTIONS_OS08A10_OTP};
 
 static int iq_log_status( struct v4l2_subdev *sd )
@@ -162,6 +162,11 @@ static int get_cali_name_id( int cali_name_id, int sensor_name_id )
             LOG( LOG_CRIT, "get_calibrations_imx307_demo\n" );
             break;
         }
+    }
+
+    if (strcmp(IqConversionTable[sensor_name_id].sensor_name, "imx415") == 0) {
+            CALIBRATION_FUNC_ARR[0] = CALIBRATION_SUBDEV_FUNCTIONS_IMX415;
+            LOG( LOG_CRIT, "Loading Calibration for IMX415\n");
     }
 
     return 0;
