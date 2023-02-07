@@ -401,7 +401,7 @@ static uint16_t sensor_get_id( void *ctx )
     }
 
     cam_exist = 1;
-    LOG(LOG_INFO, "%s: success to read sensor %x\n", __func__, sensor_id);
+    LOG(LOG_CRIT, "%s: success to read sensor imx415 %#x\n", __func__, sensor_id);
     return sensor_id;
 }
 
@@ -753,7 +753,7 @@ int sensor_detect_imx415( void* sbp)
     if (sensor_get_id(&sensor_ctx) == 0xFFFF)
         ret = -1;
     else
-        pr_info("sensor_detect_imx415 id:%d\n", sensor_get_id(&sensor_ctx));
+        pr_info("sensor_detect_imx415 id:%#x\n", sensor_get_id(&sensor_ctx));
 
     acamera_sbus_deinit(&sensor_ctx.sbus,  sbus_i2c);
     reset_am_disable(sensor_bp);

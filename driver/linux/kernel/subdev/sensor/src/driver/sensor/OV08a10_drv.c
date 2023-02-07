@@ -475,11 +475,13 @@ static uint16_t sensor_get_id( void *ctx )
     sensor_id |= acamera_sbus_read_u8(&p_ctx->sbus, 0x300a) << 16;
     sensor_id |= acamera_sbus_read_u8(&p_ctx->sbus, 0x300b) << 8;
     sensor_id |= acamera_sbus_read_u8(&p_ctx->sbus, 0x300c);
+
     if (sensor_id != SENSOR_CHIP_ID) {
         LOG(LOG_CRIT, "%s: Failed to read sensor id\n", __func__);
         return 0xFF;
     }
     cam_exist = 1;
+    LOG(LOG_CRIT, "%s: success to read sensor os08a10 %#x\n", __func__, sensor_id);
     return sensor_id;
 }
 
@@ -814,7 +816,7 @@ int sensor_detect_ov08a10( void* sbp)
     if (sensor_get_id(&sensor_ctx) == 0xFFFF)
         ret = -1;
     else
-        pr_info("sensor_detect_os08a10:%d\n", ret);
+        pr_info("sensor_detect_ov08a10 id:%#x\n", sensor_get_id(&sensor_ctx));
 
     acamera_sbus_deinit(&sensor_ctx.sbus,  sbus_i2c);
     reset_am_disable(sensor_bp);
