@@ -617,7 +617,7 @@ static int32_t soc_sensor_probe( struct platform_device *pdev )
         LOG(LOG_ERR, "Failed to alloc mem\n");
         return -ENOMEM;
     }
-    rtn = of_property_read_string(dev->of_node, "sensor-name", &sensor_name);
+    rtn = of_property_read_string(dev->of_node, "sensor_name", &sensor_name);
 
     if (rtn != 0) {
         pr_err("%s: failed to get sensor name\n", __func__);
