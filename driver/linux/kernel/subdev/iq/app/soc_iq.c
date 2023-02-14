@@ -325,7 +325,7 @@ static int32_t soc_iq_probe( struct platform_device *pdev )
     }
 
     if (sensor == NULL) {
-        rtn = of_property_read_string(dev->of_node, "sensor-name", &sensor_name);
+        rtn = of_property_read_string(dev->of_node, "sensor_name", &sensor_name);
 
         if (rtn != 0) {
             pr_err("%s: iq failed to parse dts sensor name\n", __func__);
