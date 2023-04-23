@@ -52,8 +52,6 @@
 #define WDR_2_DOL_1080P_BRL  1100
 
 static int cam_exist = 0;
-extern int tca6408_output_get_value(u8 *value);
-extern int tca6408_output_set_value(u8 value, u8 mask);
 
 static void start_streaming( void *ctx );
 static void stop_streaming( void *ctx );
@@ -137,33 +135,8 @@ static ssize_t show_camera_state(struct class *cls,
 {
     return sprintf(buf, "%d\n", cam_exist);
 }
-static ssize_t show_ircut(struct class *cls,
-                        struct class_attribute *attr, char *buf)
-{
-    u8 val;
-    int ret = 0, state = 0;
-    ret = tca6408_output_get_value(&val);
-    if (ret) {
-        printk("failed to read ircut state\n");
-        return sprintf(buf, "%d\n", state);
-    }
-    state = (val & (1<<2)) == 0 ? 1 : 0;
-    printk("read ir-cut state=%d\n", state);
-    return sprintf(buf, "%d\n", state);
-}
-static ssize_t store_ircut(struct class *cls, struct class_attribute *attr,
-                        const char *buf, size_t count)
-{
-   int enable;
-   if (kstrtoint(buf, 0, &enable))
-       return -EINVAL;
-   enable = !enable;
-   tca6408_output_set_value((u8)enable<<2, 1<<2);
-   return count;
-}
 static struct class_attribute camera_class_attrs[] = {
     __ATTR(cam_state, 0644, show_camera_state, NULL),
-    __ATTR(ircut, 0644, show_ircut, store_ircut),
 };
 
 //-------------------------------------------------------------------------------------
